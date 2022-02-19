@@ -1,0 +1,228 @@
+data fetching adalah dimana tempat kita memanggil atau memanggil data API didalam nextjs kita
+server side rendering, client side rendering dan static generation di nextjs
+
+client side rendering :
+- element nya tidak akan muncul di page source nya
+- CSR memiliki mekanisme rendering yang dilakukan di browser 
+- Teknologi ini memungkinkan developer untuk melakukan rendering, atau menghasilkan tampilan website
+  bahkan sebelum data sampai ke browser komputer atau ponsel kita. Rendering yang dilakukan sebelum datanya sampai
+  ke browser ini menjadi sesuatu yang penting. Karena menjadikan pengalaman membuka sebuah website terasa lebih cepat
+  ketika semua script sudah di-download dan dinamis.
+
+kelebihan :
+1. lebih interaktif
+2. navigate route cepat
+
+kekurangan :
+1. terdapat blank screen dan proses render diawal load
+
+server side rendering : 
+- SSR memiliki mekanisme rendering yang dilakukan di server.
+- element yang terdapat di file nya itu akan muncul di page source nya
+- Secara umum, website yang menggunakan teknologi ini cenderung lebih lambat. Namun, konten yang dihasilkan
+  dapat terlihat secara langsung, sehingga lebih mudah diindeks mesin pencari.
+
+kelebihan :
+1. meningkatkan perfomance
+2. halaman dapat di index search engine
+
+kekurangan :
+1. membutuhkan proses saat berpindah halaman
+
+- getStaticProps dan getStaticPaths disebut juga dengan static generation yang dimana maksudnya mereka akan meng-generate.
+data secara static ketika proses nextjs nya di build
+
+- kelebihan menggunakan getStaticProps dan getStaticPaths adalah semuanya akan meng generate halaman sesuai dengan yang diperlukan
+sebelum di panggil oleh user
+
+- kelemahan nya ketika datanya bersifat dinamis maka getStaticProps ini agak kurang cocok dimana kita perlu mendefinisikan
+bahwa data tersebut bisa berubah kapan saja sehingga kita perlu me refresh nya untuk server melakukan build ulang di aplikasi kita.
+
+nah getStaticProps ini cocoknya untuk beberapa data yang tidak terlalu sering berubah
+
+======================================================================================================================================
+sebelumnya untuk melakukan Api Call atau data fetching di reactjs itu kita buat di useEffect (component didmount)
+contoh :
+export default function Home() {
+   const [users, setUsers] = useState([]);
+
+   useEffect(() => {
+      const getUsers = async () => {
+         const respUsers = await fetch('http://localhost:3000/api/users');
+         const resp = await respUsers.json();
+         setUsers(resp);
+      }
+
+      getUsers();
+   }, []);
+
+   return (
+      <div className={styles.container}>
+         {users.map(user => (
+            <p key={user.id}>
+               {user.name} - {user.website}
+            </p>
+         ))}
+      </div>
+   )
+}
+======================================================================================================================================
+kalo di nextjs kita buat di :
+1. getServerSideProps
+- ketika di build file pages nya tidak berupa file static html lagi melainkan berupa file javascript. yang dimana dia tidak langsung
+dibuatkan file static html nya. karena ada logic getServerSideProps. berbeda dengan getStaticProps dia sudah dibuatkan menjadi
+file static html. 
+- getServerSideProps akan meng generate di server namun static html nya belum ada jadi static html nya dibuatkan ketika
+dipanggil oleh user
+- getServerSideProps(Server-Side Rendering) dari sebuah halaman, Next.js akan melakukan pra-render halaman ini pada setiap
+permintaan menggunakan data yang dikembalikan oleh getServerSideProps
+- hanya berjalan di sisi server dan tidak pernah berjalan di browser. Jika halaman menggunakan getServerSideProps
+
+kelebihan :
+- getServerSideProps bersifat dinamis. jadi sangat cocok untuk data yang sering berubah
+
+
+export async function getServerSideProps(ctx) {
+    const post = await fetch('https://jsonplaceholder.typicode.com/posts');
+    const postData = await post.json();
+
+
+    return {
+        props: {
+            data: postData
+        },
+    }
+}
+
+export default function Blog(props) {
+    const posts = props.data;
+
+    return (
+        <div>
+            <h1>Blog Page</h1>
+
+            <ul>
+                {posts.map((post) => {
+                    return (
+                        <li key={post.id}>
+                            <h4>{post.title}</h4>
+                            <p>{post.body}</p>
+                        </li>
+                    )
+                })}
+            </ul>
+        </div>
+    )
+}
+
+======================================================================================================================================
+2. getStaticProps
+- akan melakukan pra-render halaman pada waktu pembuatan menggunakan alat peraga yang dikembalikan dari fungsi
+- di bagian browser network. proses pemanggilan API nya tidak terlihat. Karena ini dilakukan di server
+  jadi sebelum javascript nya muncul kedalam browser dia sudah panggil API dulu kemudian di provide atau sediakan datanya
+- ketika menggunakan getStaticProps maka halaman tersebut sudah dibundle terlebih dahulu sebelum pagenya muncul
+- selain itu ketika kita bundle dan kita build. itu content nya sudah digenerate atau dipanggil terlebih dahulu.
+jadi ketika di build dia sudah memanggil API di getStaticProps nya sehingga datanya sudah ada. nah maka dari itu
+fungsi getStaticProps adalah dia sudah memiliki data sesuai dengan API yang kita panggil dan sudah disiapkan terlebih dahulu
+sebelum pagenya diserve atau ditampilkan
+
+sebelum build kita harus menambahkan atau mendefinisikan props nya:
+
+interface UserProps {
+    data: Array<any>;
+}
+
+export async function getStaticProps(ctx) {
+   const getUsers = await fetch('https://jsonplaceholder.typicode.com/users');
+   const respUsers = await getUsers.json();
+
+   return {
+      props: {
+         data: respUsers
+      }
+   }
+}
+
+export default function Home(props: UserProps) {
+   const users = props.data;
+
+   return (
+      <div className={styles.container}>
+         {users.map(user => (
+            <p key={user.id}>
+               {user.name} | {user.email}
+            </p>
+         ))}
+      </div>
+   )
+}
+======================================================================================================================================
+3. getStaticPaths
+- harus ada return path
+- untuk meng generate halaman halaman static html sejumlah user yang kita memiliki
+- Saat mengekspor fungsi yang dipanggil. getStaticPaths dari halaman yang menggunakan Rute Dinamis
+Next.js akan secara statis melakukan pra-render semua jalur yang ditentukan oleh getStaticPaths.
+
+export async function getStaticPaths() {
+    const getUsers = await fetch('https://jsonplaceholder.typicode.com/users');
+    const respUsers = await getUsers.json();
+
+    //? kita akan gunakan respUsers untuk mendapatkan list id dari masing-masing user
+    const paths = respUsers.map((user) => ({
+        params: {
+            id: `${user.id}`,
+        }
+    }));
+
+    console.log('params ' + paths);
+
+    return {
+        paths,
+        fallback: false
+    };
+}
+
+export async function getStaticProps(ctx) {
+    const { id } = ctx.params;
+    console.log('id ' + id);
+
+    const getUsers = await fetch('https://jsonplaceholder.typicode.com/users/' + id);
+    const respUsers = await getUsers.json();
+
+    return {
+        props: {
+            user: respUsers
+        }
+    }
+}
+======================================================================================================================================
+4. getInitialProps
+mengaktifkan rendering sisi server di halaman dan memungkinkan Anda melakukan populasi data awal 
+artinya mengirim halaman dengan data yang sudah diisi dari server. Ini sangat berguna untuk SEO
+
+populasi data awal atau initial data population
+adalah proses mengambil data pada saat halaman itu diload pertama kali. nah jadi itu artinya mengirim halaman dengan data
+yang sudah dipopulasi dari server  
+
+Home.getInitialProps = async (ctx) => {
+   const getUsers = await fetch('http://localhost:3000/api/users');
+   const dataUsers = await getUsers.json();
+
+   return {
+      data: dataUsers
+   }
+}
+
+export default function Home(props) {
+   const users = props.data;
+
+   return (
+      <div className={styles.container}>
+         {users.map(user => (
+            <p key={user.id}>
+               {user.name} - {user.website}
+            </p>
+         ))}
+      </div>
+   )
+}
